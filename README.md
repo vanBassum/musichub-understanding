@@ -12,17 +12,8 @@ A new conversation can begin: `Read the README of vanBassum/musichub-understandi
 
 Discussion / observation / code evidence → append-only log → independent projections → implementation and review → questions → discussion.
 
-`logs/` holds immutable, timestamped decision and observation entries. The five core projections are `model/mental-model.md` (domain semantics), `features/features.md` (approved behavior), `architecture/architecture.md` (durable technical boundaries), `design/design.md` (durable UX and visual rules), and `security/security.md` (security guarantees and trust boundaries). Each projector reads the complete shared log history and edits only its owned directory.
+`logs/` holds immutable, timestamped decision and observation entries. The five projections are `model/mental-model.md` (domain semantics), `features/features.md` (approved behavior), `architecture/architecture.md` (durable technical boundaries), `design/design.md` (durable UX and visual rules), and `security/security.md` (security guarantees and trust boundaries). Each projector reads the complete shared log history and edits only its owned directory.
 
-### Temporary experimental projectors
-
-Three additional, independent projectors are enabled as a **reversible experiment**:
-
-- `structured-analysis/analysis.md`: requirements-level structured analysis inspired by Ed Yourdon's *Just Enough Structured Analysis* (DFDs, process specifications, data dictionary, explicit unknowns).
-- `visual/index.html`: self-contained, navigable HTML visualization of the intended system.
-- `manual/index.html` plus chapter pages: self-contained conceptual HTML handbook, not documentation of implemented features.
-
-All three derive only from the append-only logs and must cite relevant log files, distinguish accepted decisions from open questions, and avoid inventing requirements. They are generated artifacts, not sources of truth. No external assets, network dependencies or builds are required. Remove the three matrix entries, projector prompts, output directories and README section to end the experiment. Existing five projectors remain unchanged.
 
 ## Recording decisions
 
@@ -40,7 +31,7 @@ Changes to README, `.github/workflows/`, `.github/projectors/`, or other non-log
 
 ## Automation
 
-`.github/workflows/project-understanding.yml` validates append-only log-only PRs and auto-merges eligible changes. The merged-PR handler dispatches one centralized rebuild for relevant merged changes (including manual mechanism PRs). Mechanism changes remain manual. `.github/workflows/rebuild-projections.yml` runs five core and three experimental independent projectors on the same `main` snapshot and publishes only when all succeed and `main` has not advanced. Configure `CLAUDE_CODE_OAUTH_TOKEN` and Actions `GITHUB_TOKEN` write permissions.
+`.github/workflows/project-understanding.yml` validates append-only log-only PRs and auto-merges eligible changes. The merged-PR handler dispatches one centralized rebuild for relevant merged changes (including manual mechanism PRs). Mechanism changes remain manual. `.github/workflows/rebuild-projections.yml` runs five independent projectors on the same `main` snapshot and publishes only when all succeed and `main` has not advanced. Configure `CLAUDE_CODE_OAUTH_TOKEN` and Actions `GITHUB_TOKEN` write permissions.
 
 ## Principle
 
