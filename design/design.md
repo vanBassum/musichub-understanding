@@ -5,6 +5,9 @@ Durable UX rules supported by the recorded decisions. Visual style, component sy
 ## Configuration surfaces
 - The UI is never required for configuration; it must not become a second, conflicting source of configuration truth. Whether it shows read-only settings or allows editing is open.
 
+## Import
+- A UI-based import flow (upload) is one supported way to bring user-supplied files into MusicHub, alongside a designated import folder. Upload mechanics, validation and duplicate handling are open.
+
 ## Discovery, search and wishlist
 - Users can search inside MusicHub and add chosen results to the wishlist.
 - A Recommended list may be shown as suggestions. Suggestions, including AI-playlist items not in the library, are never added to the wishlist automatically; adding is always an explicit user action.
