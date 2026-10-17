@@ -1,0 +1,203 @@
+name: Rebuild projections
+
+# Each projector independently derives its own projection from the same log snapshot.
+# Publish all five outputs together only after every projector succeeds.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: understanding-main-projection
+  cancel-in-progress: true
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.base.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  project:
+    needs: snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - area: model
+            prompt: >-
+              Project the repository's recorded understanding into the current MusicHub mental model. Read README.md and .github/projectors/model.md and follow those rules exactly. Read the complete append-only log under logs/ and the current contents of model/. Re-evaluate the full current projection from all recorded evidence. Update model/mental-model.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside model/.
+              This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
+          - area: features
+            prompt: >-
+              Project the repository's recorded understanding into the current MusicHub feature catalogue. Read README.md and .github/projectors/features.md and follow those rules exactly. Read the complete append-only log under logs/, model/mental-model.md, and features/. Re-evaluate the full current projection from all recorded evidence. Update features/features.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside features/.
+              This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
+          - area: architecture
+            prompt: >-
+              Project the repository's recorded understanding into the current MusicHub architecture. Read README.md and .github/projectors/architecture.md and follow those rules exactly. Read the complete append-only log under logs/, model/mental-model.md, and architecture/. Re-evaluate the full current projection from all recorded evidence. Update architecture/architecture.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside architecture/.
+              This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
+          - area: design
+            prompt: >-
+              Project the repository's recorded understanding into the current MusicHub design direction. Read README.md and .github/projectors/design.md and follow those rules exactly. Read the complete append-only log under logs/, model/mental-model.md, and design/. Re-evaluate the full current projection from all recorded evidence. Update design/design.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside design/.
+              This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
+          - area: security
+            prompt: >-
+              Project the repository's recorded understanding into the current MusicHub security contract. Read README.md and .github/projectors/security.md and follow those rules exactly. Read the complete append-only log under logs/, model/mental-model.md, architecture/architecture.md, and security/. Re-evaluate the full current projection from all recorded evidence. Update security/security.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside security/.
+              This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out shared snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.snapshot.outputs.sha }}
+          persist-credentials: false
+
+      # Projectors read the whole log as one file instead of one Read per log, so the
+      # number of turns does not grow with the log. The file lives outside the checkout
+      # and is never committed or uploaded.
+      - name: Combine log history
+        env:
+          SHA: ${{ needs.snapshot.outputs.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/understanding"
+          mapfile -t files < <(find logs -type f -name '*.md' | LC_ALL=C sort)
+          echo "Log count: ${#files[@]}"
+          {
+            echo "# MusicHub log history"
+            echo
+            echo "Verbatim copy of all ${#files[@]} files under logs/ at commit $SHA, in byte-wise filename order."
+            echo "Filename order is not decision order; resolve supersession as the repository rules require."
+            for file in "${files[@]}"; do
+              printf '\n===== BEGIN %s =====\n' "$file"
+              cat "$file"
+              printf '\n===== END %s =====\n' "$file"
+            done
+            printf '\n===== END OF LOG HISTORY (%d files) =====\n' "${#files[@]}"
+          } > "$RUNNER_TEMP/understanding/logs.md"
+
+      - name: Project ${{ matrix.area }}
+        id: security
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_bots: github-actions
+          prompt: ${{ matrix.prompt }}
+          claude_args: |
+            --max-turns 30
+            --allowedTools "Read,Grep,Glob,Edit,Write"
+            --add-dir ${{ runner.temp }}/understanding
+
+      - name: Verify security projector completed
+        if: matrix.area == 'security'
+        env:
+          EXECUTION_FILE: ${{ steps.security.outputs.execution_file }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = os.environ.get("EXECUTION_FILE")
+          if not path or not Path(path).is_file():
+              raise SystemExit("Security projector produced no execution report.")
+          messages = json.loads(Path(path).read_text())
+          results = [message for message in messages if message.get("type") == "result"]
+          if not results:
+              raise SystemExit("Security projector produced no result.")
+          result = results[-1]
+          if result.get("subtype") != "success" or result.get("is_error"):
+              raise SystemExit("Security projector did not complete successfully.")
+
+          denials = result.get("permission_denials") or []
+          tools = sorted({denial.get("tool_name", "unknown") for denial in denials})
+          print("Security projector denied tools:", ", ".join(tools) or "none")
+          required = {"Read", "Grep", "Glob", "Edit", "Write"}
+          if any(denial.get("tool_name") in required for denial in denials):
+              raise SystemExit("A required security projection tool was denied; refusing to publish projections.")
+          PY
+
+      - name: Verify projector stayed within its owned directory
+        env:
+          AREA: ${{ matrix.area }}
+        run: |
+          set -euo pipefail
+          changed=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
+          if [ -n "$changed" ]; then
+            invalid=$(printf '%s\n' "$changed" | grep -v "^${AREA}/" || true)
+            if [ -n "$invalid" ]; then
+              echo "::error::Projector changed files outside ${AREA}/."
+              echo "$invalid"
+              exit 1
+            fi
+          fi
+
+      - name: Upload projection
+        uses: actions/upload-artifact@v4
+        with:
+          name: projection-${{ matrix.area }}
+          path: ${{ matrix.area }}/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: [snapshot, project]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out shared snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.snapshot.outputs.sha }}
+          persist-credentials: true
+
+      - name: Download all projections
+        uses: actions/download-artifact@v4
+        with:
+          pattern: projection-*
+          path: projections
+
+      - name: Assemble projections
+        run: |
+          set -euo pipefail
+          for area in model features architecture design security; do
+            source="projections/projection-$area"
+            test -d "$source"
+            find "$area" -type f -delete
+            cp -a "$source/." "$area/"
+          done
+          rm -rf projections
+
+      - name: Push only if main is still the projected history
+        env:
+          BASE_SHA: ${{ needs.snapshot.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No projection changed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add model/ features/ architecture/ design/ security/
+          git commit -m "Rebuild understanding projections"
+
+          git fetch origin main
+          REMOTE_SHA=$(git rev-parse origin/main)
+          if [ "$REMOTE_SHA" != "$BASE_SHA" ]; then
+            echo "Main advanced while this rebuild was running; a newer rebuild owns the projection."
+            exit 0
+          fi
+
+          git push origin HEAD:main
