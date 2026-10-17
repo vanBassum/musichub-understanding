@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wishlist and acquisition - MusicHub handbook (experimental)</title>
+<style>:root{color-scheme:light dark;--bg:#fff;--fg:#1c1f24;--mut:#59606b;--acc:#1b5fb4;--box:#f3f5f8;--bd:#d5d9e0;--warn:#fff4d6;--warnbd:#e0b84c}
+@media(prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e6e8eb;--mut:#a0a7b2;--acc:#7db3ff;--box:#1d2128;--bd:#343a44;--warn:#2d2711;--warnbd:#8a7326}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--acc)}a:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.skip{position:absolute;left:-999px}.skip:focus{left:.5rem;top:.5rem;background:var(--bg);padding:.4rem;z-index:9}
+header,main,footer,nav{max-width:46rem;margin:0 auto;padding:1rem}
+nav ul{display:flex;flex-wrap:wrap;gap:.4rem .9rem;list-style:none;padding:0;margin:.5rem 0}
+nav{border-bottom:1px solid var(--bd)}
+.banner{background:var(--warn);border:1px solid var(--warnbd);border-radius:6px;padding:.6rem .9rem;margin:.5rem 0}
+h1{line-height:1.2}h2{margin-top:2rem;border-bottom:1px solid var(--bd);padding-bottom:.2rem}
+.open{background:var(--box);border:1px solid var(--bd);border-radius:6px;padding:.2rem 1rem .6rem}
+.src{color:var(--mut);font-size:.85rem;overflow-wrap:anywhere}
+.pager{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2rem}</style></head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header><p class="banner" role="note"><strong>Experimental / conceptual.</strong> This handbook describes intended MusicHub behavior as recorded in the append-only logs. It is not documentation of implemented features and does not show that any functionality is available. Generated projection, not a source of truth.</p></header>
+<nav aria-label="Chapters"><ul><li><a href="index.html">Handbook index</a></li><li><a href="library.html">Library and importing</a></li><li><a href="identification.html">Identification and review</a></li><li><a href="wishlist.html" aria-current="page">Wishlist and acquisition</a></li><li><a href="quality.html">Quality upgrades and versions</a></li><li><a href="operations.html">Scheduler and problem dashboard</a></li></ul></nav>
+<main id="main">
+<h1>Wishlist and acquisition</h1>
+<p>How the user says what they want and how MusicHub goes and gets it.</p>
+<h2 id="agreed">What is agreed</h2>
+<p>Accepted decisions in the logs.</p>
+<h3>The user curates the wishlist</h3>
+<ul>
+<li>The user decides what goes on the wishlist; MusicHub does not autonomously add artists, albums or tracks.</li>
+<li>Once the user has added an item, MusicHub may search, download and upgrade within configured rules.</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-20-40-00-user-curated-wishlist.md">2026-10-17-20-40-00-user-curated-wishlist.md</a></p>
+<h3>Search, recommendations and AI playlists</h3>
+<ul>
+<li>Users can search inside MusicHub and add chosen results to the wishlist.</li>
+<li>MusicHub may show a Recommended list as suggestions without adding them automatically.</li>
+<li>AI-generated playlists are expected to be a major source of suggestions, including music not yet in the library.</li>
+<li>Discovery and recommendation are distinct from authorizing acquisition; wishlist additions remain user-controlled unless a later decision changes this.</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-20-45-00-music-search-recommendations-and-playlist-ai.md">2026-10-17-20-45-00-music-search-recommendations-and-playlist-ai.md</a></p>
+<h3>Scope follows what was selected</h3>
+<ul>
+<li>Explicitly adding an album makes MusicHub resolve its track list and seek its tracks, subject to library and acquisition rules.</li>
+<li>Adding a single track does not request its album; adding an artist does not request their discography.</li>
+<li>When adding an album the user chooses the specific edition. The standard/original release is shown prominently at the top as the suggested default, other editions stay selectable, and no edition is silently substituted.</li>
+</ul>
+<p class="src">Source logs: <a href="../logs/2026-10-17-20-50-00-explicit-album-wishlist-expansion.md">2026-10-17-20-50-00-explicit-album-wishlist-expansion.md</a>, <a href="../logs/2026-10-17-20-55-00-explicit-album-edition-selection.md">2026-10-17-20-55-00-explicit-album-edition-selection.md</a></p>
+<h3>Album packages and per-track handling</h3>
+<ul>
+<li>MusicHub may acquire a whole album as a package even when some tracks are already present.</li>
+<li>Each track is then evaluated separately against the library and quality profile: missing tracks are imported; existing tracks are upgraded only if the new file qualifies under the profile and cutoff, otherwise retained.</li>
+<li>Downloaded contents are validated per track, not all-or-nothing: correctly identified tracks may be imported immediately even if others fail, failed tracks do not enter the library, and tracks still missing remain eligible for later searches.</li>
+<li>Identity and the chosen edition are respected; a better-encoded but different mix, remaster or performance is not substituted.</li>
+</ul>
+<p class="src">Source logs: <a href="../logs/2026-10-17-21-00-00-album-package-acquisition-and-per-track-upgrades.md">2026-10-17-21-00-00-album-package-acquisition-and-per-track-upgrades.md</a>, <a href="../logs/2026-10-17-21-10-00-per-track-validated-album-import.md">2026-10-17-21-10-00-per-track-validated-album-import.md</a></p>
+<h2 id="journey">Conceptual user journey</h2>
+<p>An illustrative sequence built from the decisions above; it names no screens, buttons or settings.</p>
+<ol>
+<li>The user searches in MusicHub, or looks at recommendations or an AI-generated playlist, and chooses what to add.</li>
+<li>For an album, the user picks an edition, with the standard/original release suggested first.</li>
+<li>MusicHub then searches for the wanted music within configured rules, possibly acquiring a whole album package.</li>
+<li>Each acquired track is validated individually; good ones are imported, bad ones are kept out, and gaps stay on the search list.</li>
+<li>Problems along the way appear on the problem dashboard (see <a href="operations.html">Scheduler and problem dashboard</a>).</li>
+</ol>
+<h2 id="undecided">What is not yet decided</h2>
+<div class="open"><ul>
+<li>Which search sources are supported and how results are grouped by track, album and artist.</li>
+<li>How AI playlists reference unavailable music, whether one-click or bulk wishlist additions exist, and how recommendations are ranked or sourced.</li>
+<li>What adding an artist means operationally, if it is supported at all; wishlist entry types and input methods.</li>
+<li>How the authoritative original release is determined when several country/format editions exist; edition labeling; whether the default needs confirmation.</li>
+<li>Handling of missing track listings or ambiguous album identity.</li>
+<li>Whole-album versus individual-track preference; staging and cleanup of package downloads and rejected files; user review and reprocessing of rejected tracks; presentation of partial album completeness.</li>
+</ul></div>
+<div class="pager"><a href="identification.html" rel="prev">&larr; Identification and review</a><a href="quality.html" rel="next">Quality upgrades and versions &rarr;</a></div>
+</main>
+<footer><p class="src">Derived only from README.md and <code>logs/</code>. Corrections are made through new logs, never by editing this handbook.</p></footer>
+</body></html>

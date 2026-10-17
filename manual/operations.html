@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scheduler and problem dashboard - MusicHub handbook (experimental)</title>
+<style>:root{color-scheme:light dark;--bg:#fff;--fg:#1c1f24;--mut:#59606b;--acc:#1b5fb4;--box:#f3f5f8;--bd:#d5d9e0;--warn:#fff4d6;--warnbd:#e0b84c}
+@media(prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e6e8eb;--mut:#a0a7b2;--acc:#7db3ff;--box:#1d2128;--bd:#343a44;--warn:#2d2711;--warnbd:#8a7326}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--acc)}a:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.skip{position:absolute;left:-999px}.skip:focus{left:.5rem;top:.5rem;background:var(--bg);padding:.4rem;z-index:9}
+header,main,footer,nav{max-width:46rem;margin:0 auto;padding:1rem}
+nav ul{display:flex;flex-wrap:wrap;gap:.4rem .9rem;list-style:none;padding:0;margin:.5rem 0}
+nav{border-bottom:1px solid var(--bd)}
+.banner{background:var(--warn);border:1px solid var(--warnbd);border-radius:6px;padding:.6rem .9rem;margin:.5rem 0}
+h1{line-height:1.2}h2{margin-top:2rem;border-bottom:1px solid var(--bd);padding-bottom:.2rem}
+.open{background:var(--box);border:1px solid var(--bd);border-radius:6px;padding:.2rem 1rem .6rem}
+.src{color:var(--mut);font-size:.85rem;overflow-wrap:anywhere}
+.pager{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2rem}</style></head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header><p class="banner" role="note"><strong>Experimental / conceptual.</strong> This handbook describes intended MusicHub behavior as recorded in the append-only logs. It is not documentation of implemented features and does not show that any functionality is available. Generated projection, not a source of truth.</p></header>
+<nav aria-label="Chapters"><ul><li><a href="index.html">Handbook index</a></li><li><a href="library.html">Library and importing</a></li><li><a href="identification.html">Identification and review</a></li><li><a href="wishlist.html">Wishlist and acquisition</a></li><li><a href="quality.html">Quality upgrades and versions</a></li><li><a href="operations.html" aria-current="page">Scheduler and problem dashboard</a></li></ul></nav>
+<main id="main">
+<h1>Scheduler and problem dashboard</h1>
+<p>How background work is shown and controlled, and where things that need attention show up.</p>
+<h2 id="agreed">What is agreed</h2>
+<p>Accepted decisions in the logs.</p>
+<h3>Central scheduler</h3>
+<ul>
+<li>A central scheduler runs recurring tasks across workflows, such as searches for missing tracks and quality upgrades.</li>
+<li>Users can see planned and running tasks, their previous results and next scheduled run, and can trigger a task manually in addition to its schedule.</li>
+<li>Scheduling and task behavior are configurable without the UI, consistent with file-based configuration.</li>
+</ul>
+<p class="src">Source logs: <a href="../logs/2026-10-17-20-35-00-central-task-scheduling.md">2026-10-17-20-35-00-central-task-scheduling.md</a>, <a href="../logs/2026-10-17-20-11-00-file-based-configuration.md">2026-10-17-20-11-00-file-based-configuration.md</a></p>
+<h3>Central problem dashboard</h3>
+<ul>
+<li>A dedicated dashboard gathers exceptional cases across subsystems: uncertain recordings, repeated conflicts with manual identification, download/import problems, and failed or stuck tasks.</li>
+<li>Entries should make the affected music or task, reason, severity and available follow-up actions understandable, and let users address problems or start reprocessing where applicable.</li>
+<li>It is distinct from the scheduler overview, which shows normal task activity; the dashboard focuses on exceptions.</li>
+</ul>
+<p class="src">Source logs: <a href="../logs/2026-10-17-21-25-00-central-problem-dashboard.md">2026-10-17-21-25-00-central-problem-dashboard.md</a>, <a href="../logs/2026-10-17-21-20-00-manual-identity-authority-and-conflict-alerts.md">2026-10-17-21-20-00-manual-identity-authority-and-conflict-alerts.md</a></p>
+<h3>Autonomous recovery and history</h3>
+<ul>
+<li>MusicHub tries to resolve recoverable problems itself, such as transient download or task failures.</li>
+<li>Problems may be visible while recovery is in progress rather than hidden until retries run out.</li>
+<li>The dashboard distinguishes problems being recovered, those needing user action, resolved ones and recurring ones, and keeps history so resolved and recurring issues stay inspectable.</li>
+<li>It supports filtering by dimensions such as status, problem type, affected music, task, time and severity.</li>
+<li>Autonomous recovery must not override manual identity confirmations or other user-controlled decisions.</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-21-30-00-autonomous-recovery-and-filterable-problem-history.md">2026-10-17-21-30-00-autonomous-recovery-and-filterable-problem-history.md</a></p>
+<h2 id="journey">Conceptual user journey</h2>
+<p>An illustrative sequence built from the decisions above; it names no screens, buttons or settings.</p>
+<ol>
+<li>Recurring work, such as searching for missing music or upgrades, is listed in the scheduler with last results and next run; the user can trigger a task by hand.</li>
+<li>When something goes wrong, an entry appears on the problem dashboard, even while MusicHub is still retrying.</li>
+<li>Entries still being recovered need nothing from the user; entries needing action offer follow-ups or reprocessing.</li>
+<li>Later, the user filters the history to investigate resolved or recurring problems.</li>
+</ol>
+<h2 id="undecided">What is not yet decided</h2>
+<div class="open"><ul>
+<li>Task definitions, concurrency, retry policies, cancellation, logs, history retention, permissions, schedule expression format and deployment topology.</li>
+<li>Severity and status taxonomies, sorting, grouping, filters, saved views and notification rules.</li>
+<li>Resolution workflows, assignment, suppression, audit history and retention.</li>
+<li>Retry schedules, limits and escalation; which problems are safe to auto-resolve and which need approval.</li>
+<li>UI layout and navigation for both the scheduler and the dashboard.</li>
+</ul></div>
+<div class="pager"><a href="quality.html" rel="prev">&larr; Quality upgrades and versions</a><span></span></div>
+</main>
+<footer><p class="src">Derived only from README.md and <code>logs/</code>. Corrections are made through new logs, never by editing this handbook.</p></footer>
+</body></html>

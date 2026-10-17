@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Identification and review - MusicHub handbook (experimental)</title>
+<style>:root{color-scheme:light dark;--bg:#fff;--fg:#1c1f24;--mut:#59606b;--acc:#1b5fb4;--box:#f3f5f8;--bd:#d5d9e0;--warn:#fff4d6;--warnbd:#e0b84c}
+@media(prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e6e8eb;--mut:#a0a7b2;--acc:#7db3ff;--box:#1d2128;--bd:#343a44;--warn:#2d2711;--warnbd:#8a7326}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--acc)}a:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.skip{position:absolute;left:-999px}.skip:focus{left:.5rem;top:.5rem;background:var(--bg);padding:.4rem;z-index:9}
+header,main,footer,nav{max-width:46rem;margin:0 auto;padding:1rem}
+nav ul{display:flex;flex-wrap:wrap;gap:.4rem .9rem;list-style:none;padding:0;margin:.5rem 0}
+nav{border-bottom:1px solid var(--bd)}
+.banner{background:var(--warn);border:1px solid var(--warnbd);border-radius:6px;padding:.6rem .9rem;margin:.5rem 0}
+h1{line-height:1.2}h2{margin-top:2rem;border-bottom:1px solid var(--bd);padding-bottom:.2rem}
+.open{background:var(--box);border:1px solid var(--bd);border-radius:6px;padding:.2rem 1rem .6rem}
+.src{color:var(--mut);font-size:.85rem;overflow-wrap:anywhere}
+.pager{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2rem}</style></head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header><p class="banner" role="note"><strong>Experimental / conceptual.</strong> This handbook describes intended MusicHub behavior as recorded in the append-only logs. It is not documentation of implemented features and does not show that any functionality is available. Generated projection, not a source of truth.</p></header>
+<nav aria-label="Chapters"><ul><li><a href="index.html">Handbook index</a></li><li><a href="library.html">Library and importing</a></li><li><a href="identification.html" aria-current="page">Identification and review</a></li><li><a href="wishlist.html">Wishlist and acquisition</a></li><li><a href="quality.html">Quality upgrades and versions</a></li><li><a href="operations.html">Scheduler and problem dashboard</a></li></ul></nav>
+<main id="main">
+<h1>Identification and review</h1>
+<p>How MusicHub decides what a file is, and what happens when it is unsure.</p>
+<h2 id="agreed">What is agreed</h2>
+<p>Accepted decisions in the logs.</p>
+<h3>Metadata is evidence, not truth</h3>
+<ul>
+<li>Incoming tags are untrusted evidence. Existing artist and title may be used as search hints but do not establish identity.</li>
+<li>MusicHub aims to identify the exact recording or version in each file, and prefers the original single release when it genuinely contains that recording, otherwise the appropriate original album release.</li>
+<li>A different recording, mix, remaster or version is never substituted merely to fit the preferred release type.</li>
+<li>Recording identity and release relationships are kept in the catalog independently of embedded tags, so exports can present different release metadata and artwork.</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-20-15-00-import-identification-and-release-metadata.md">2026-10-17-20-15-00-import-identification-and-release-metadata.md</a></p>
+<h3>A configurable, confidence-based pipeline</h3>
+<ul>
+<li>Identification is an ordered, configurable workflow of evidence steps that the user can compose; steps contribute evidence toward a confidence assessment of candidate identities.</li>
+<li>Costly steps can be skipped once confidence is sufficiently high.</li>
+<li>High confidence: imported automatically. Intermediate confidence: imported, with the uncertainty recorded and visible for later review and correction. Very low confidence: not imported as an identified library track.</li>
+<li>A durable review/history view lists identifications that have been uncertain, even if already imported.</li>
+<li>Outcomes retain provenance: the chosen candidate, supporting evidence, checks performed, confidence and later user corrections.</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-20-20-00-configurable-identification-pipeline.md">2026-10-17-20-20-00-configurable-identification-pipeline.md</a></p>
+<h3>Files that cannot be identified</h3>
+<ul>
+<li>They are not imported into the managed library and remain available for later identification, in the import area or a dedicated quarantine area (placement undecided).</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-20-25-00-unidentified-files-and-content-addressed-storage.md">2026-10-17-20-25-00-unidentified-files-and-content-addressed-storage.md</a></p>
+<h3>Existing versus incoming audio</h3>
+<ul>
+<li>The identification confidence of both the existing recording and the incoming candidate is compared.</li>
+<li>A confidently identified existing recording is not displaced by a less certain candidate merely because of better encoding quality.</li>
+<li>Identity confidence and audio quality are separate dimensions and are not collapsed into one score.</li>
+<li>Uncertain candidates may be retained outside the canonical library and shown in a later review overview.</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-21-15-00-compare-identification-confidence-of-candidates.md">2026-10-17-21-15-00-compare-identification-confidence-of-candidates.md</a></p>
+<h3>Manual confirmation wins</h3>
+<ul>
+<li>A user's explicit manual identity confirmation is treated as 100% certain and takes precedence over automated identification, which must not silently overwrite it.</li>
+<li>If later automated results repeatedly contradict it, MusicHub surfaces a visible alert for review. The alert does not change the identity; only a user correction can.</li>
+<li>Manual confirmation provenance is kept separate from machine-generated confidence.</li>
+</ul>
+<p class="src">Source log: <a href="../logs/2026-10-17-21-20-00-manual-identity-authority-and-conflict-alerts.md">2026-10-17-21-20-00-manual-identity-authority-and-conflict-alerts.md</a></p>
+<h2 id="journey">Conceptual user journey</h2>
+<p>An illustrative sequence built from the decisions above; it names no screens, buttons or settings.</p>
+<ol>
+<li>A file arrives and its tags are treated as hints only.</li>
+<li>The configured pipeline gathers evidence and arrives at a confidence for each candidate identity, skipping costly steps where confidence is already high.</li>
+<li>High confidence: the track is imported. Intermediate: imported with uncertainty flagged in the review history. Very low: the file stays out of the library for later identification.</li>
+<li>The user can review uncertain items and manually confirm an identity, which then outranks automated results.</li>
+<li>If automation keeps disagreeing with a manual confirmation, an alert is raised (see <a href="operations.html">Scheduler and problem dashboard</a>) but the confirmed identity stays.</li>
+</ol>
+<h2 id="undecided">What is not yet decided</h2>
+<div class="open"><ul>
+<li>Audio fingerprinting, external catalog sources, confidence computation and calibration (including correlated evidence), and numeric thresholds. The 80% figure in the logs was only illustrative.</li>
+<li>Treatment of remasters versus otherwise identical recordings.</li>
+<li>Workflow editing UX, allowed step types and short-circuit conditions; whether fingerprints are generated on demand or cached.</li>
+<li>Review queue UI, timing and workflow; retry and reprocessing controls; how uncertain candidates are stored, approved, rejected or cleaned up.</li>
+<li>Exact comparison rules, including automatic replacement when both are uncertain; canonical choice when two files represent the same recording.</li>
+<li>What counts as repeated conflicting evidence, where alerts appear, dismissal and recurrence, and whether a manual confirmation covers one file, one recording or equivalent encodings.</li>
+</ul></div>
+<div class="pager"><a href="library.html" rel="prev">&larr; Library and importing</a><a href="wishlist.html" rel="next">Wishlist and acquisition &rarr;</a></div>
+</main>
+<footer><p class="src">Derived only from README.md and <code>logs/</code>. Corrections are made through new logs, never by editing this handbook.</p></footer>
+</body></html>
