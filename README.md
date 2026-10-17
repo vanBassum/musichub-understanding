@@ -12,7 +12,7 @@ A new conversation can begin: `Read the README of vanBassum/musichub-understandi
 
 Discussion / observation / code evidence → append-only log → independent projections → implementation and review → questions → discussion.
 
-`logs/` holds immutable, timestamped decision and observation entries. The five projections are `model/mental-model.md` (domain semantics), `features/features.md` (approved behavior), `architecture/architecture.md` (durable technical boundaries), `design/design.md` (durable UX and visual rules), and `security/security.md` (security guarantees and trust boundaries). Each projector reads the complete shared log history and edits only its owned directory.
+`logs/` holds immutable, timestamped decision and observation entries. The four projections are `model/mental-model.md` (domain semantics), `features/features.md` (approved behavior), `architecture/architecture.md` (durable technical boundaries), and `security/security.md` (security guarantees and trust boundaries). Each projector reads the complete shared log history and edits only its owned directory.
 
 
 ## Recording decisions
@@ -31,7 +31,7 @@ Changes to README, `.github/workflows/`, `.github/projectors/`, or other non-log
 
 ## Automation
 
-`.github/workflows/project-understanding.yml` validates append-only log-only PRs and auto-merges eligible changes. The merged-PR handler dispatches one centralized rebuild for relevant merged changes (including manual mechanism PRs). Mechanism changes remain manual. `.github/workflows/rebuild-projections.yml` runs five independent projectors on the same `main` snapshot and publishes only when all succeed and `main` has not advanced. Configure `CLAUDE_CODE_OAUTH_TOKEN` and Actions `GITHUB_TOKEN` write permissions.
+`.github/workflows/project-understanding.yml` validates append-only log-only PRs and auto-merges eligible changes. The merged-PR handler dispatches one centralized rebuild for relevant merged changes (including manual mechanism PRs). Mechanism changes remain manual. `.github/workflows/rebuild-projections.yml` runs four independent projectors on the same `main` snapshot and publishes only when all succeed and `main` has not advanced. Configure `CLAUDE_CODE_OAUTH_TOKEN` and Actions `GITHUB_TOKEN` write permissions.
 
 ## Principle
 
