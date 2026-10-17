@@ -1,7 +1,7 @@
 name: Rebuild projections
 
 # Each projector independently derives its own projection from the same log snapshot.
-# Publish all eight outputs together only after every projector succeeds.
+# Publish all five outputs together only after every projector succeeds.
 on:
   workflow_dispatch:
 
@@ -49,15 +49,6 @@ jobs:
             prompt: >-
               Project the repository's recorded understanding into the current MusicHub security contract. Read README.md and .github/projectors/security.md and follow those rules exactly. Read the complete append-only log under logs/, model/mental-model.md, architecture/architecture.md, and security/. Re-evaluate the full current projection from all recorded evidence. Update security/security.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside security/.
               This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
-          - area: structured-analysis
-            prompt: >-
-              Create the experimental structured analysis projection. Read README.md, .github/projectors/structured-analysis.md, the complete logs/ history and structured-analysis/. Follow the projector rules and update structured-analysis/analysis.md. Edit only structured-analysis/. Model essential requirements, not implementation.
-          - area: visual
-            prompt: >-
-              Create the experimental visual HTML projection. Read README.md, .github/projectors/visual.md, the complete logs/ history and visual/. Follow the projector rules and update visual/index.html and optional supporting files. Edit only visual/.
-          - area: manual
-            prompt: >-
-              Create the experimental multi-page HTML handbook projection. Read README.md, .github/projectors/manual.md, the complete logs/ history and manual/. Follow the projector rules and update manual/index.html and chapter pages. Edit only manual/.
     permissions:
       contents: read
       id-token: write
@@ -179,7 +170,7 @@ jobs:
       - name: Assemble projections
         run: |
           set -euo pipefail
-          for area in model features architecture design security structured-analysis visual manual; do
+          for area in model features architecture design security; do
             source="projections/projection-$area"
             test -d "$source"
             find "$area" -type f -delete
@@ -199,7 +190,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- model/ features/ architecture/ design/ security/ structured-analysis/ visual/ manual/
+          git add model/ features/ architecture/ design/ security/
           git commit -m "Rebuild understanding projections"
 
           git fetch origin main
