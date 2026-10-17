@@ -1,7 +1,7 @@
 name: Rebuild projections
 
 # Each projector independently derives its own projection from the same log snapshot.
-# Publish all five outputs together only after every projector succeeds.
+# Publish all four outputs together only after every projector succeeds.
 on:
   workflow_dispatch:
 
@@ -40,10 +40,6 @@ jobs:
           - area: architecture
             prompt: >-
               Project the repository's recorded understanding into the current MusicHub architecture. Read README.md and .github/projectors/architecture.md and follow those rules exactly. Read the complete append-only log under logs/, model/mental-model.md, and architecture/. Re-evaluate the full current projection from all recorded evidence. Update architecture/architecture.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside architecture/.
-              This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
-          - area: design
-            prompt: >-
-              Project the repository's recorded understanding into the current MusicHub design direction. Read README.md and .github/projectors/design.md and follow those rules exactly. Read the complete append-only log under logs/, model/mental-model.md, and design/. Re-evaluate the full current projection from all recorded evidence. Update design/design.md when the logs support a different current projection. If they do not, make no change. Do not edit anything outside design/.
               This projector runs concurrently with other projectors: other projection files are the baseline from the same main commit, not newly projected output. Resolve cross-domain understanding from the full logs; do not wait for or modify another projection.
           - area: security
             prompt: >-
@@ -170,7 +166,7 @@ jobs:
       - name: Assemble projections
         run: |
           set -euo pipefail
-          for area in model features architecture design security; do
+          for area in model features architecture security; do
             source="projections/projection-$area"
             test -d "$source"
             find "$area" -type f -delete
@@ -190,7 +186,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add model/ features/ architecture/ design/ security/
+          git add model/ features/ architecture/ security/
           git commit -m "Rebuild understanding projections"
 
           git fetch origin main
