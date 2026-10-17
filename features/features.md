@@ -80,3 +80,9 @@ Catalogue of capabilities established in the logs. Items under "Open" are explic
 - Problem history is retained so resolved and recurring issues stay inspectable, with effective filtering (e.g. status, type, affected music, task, time, severity).
 - Autonomous recovery must not override manual identity confirmations or other user-controlled decisions.
 - Open: severity/status taxonomy, sorting/grouping/saved views, notification rules, retry schedules/limits/escalation, which problems are safe to auto-resolve, suppression/audit/retention, navigation and visual design.
+
+## 10. User interface
+
+- The UI is English only; no multilingual or internationalization support is required.
+- The initial UI is a replaceable prototype: a library view with a filter sidebar, a track table and a selected-track details panel, using mock data (no backend integration). Selecting a track shows its details. Controls and filters that are not yet functional are shown as visibly disabled placeholders, not as deceptive interactive elements. This layout is provisional and future redesigns are permitted.
+- Open: production visual design, real library data integration, search/filter behavior, playback, broader navigation.

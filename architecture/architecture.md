@@ -22,6 +22,12 @@ Durable technical boundaries projected from the decision logs. Items under "Open
 - Any UI must not become a separate, conflicting source of configuration truth.
 - Scheduling, task behavior, quality profiles, search intervals/priorities and identification workflow are configurable under this policy.
 
+## Delivery pipeline and UI stack
+- Pull requests are validated by GitHub Actions (compile/build and lint); failing required checks block merging to main. CI failures are addressed from CI results; implementation agents do not run local builds or test suites.
+- After merge to main, the deployable Docker image is built and deployed to acceptation. This post-merge image build is distinct from PR validation; Docker image builds are not duplicated in PR validation.
+- The UI is built with React, shadcn/ui components and Tailwind styling; other dependencies require explicit owner approval. The UI is English-only (no i18n framework). Visual layout is provisional and replaceable, not an architectural constraint.
+- Whether the current CI workflow already implements this policy is unverified.
+
 ## Identification pipeline
 - Incoming metadata is untrusted evidence; artist/title serve only as search hints.
 - An ordered, user-composable, configurable workflow of evidence steps yields confidence for candidate identities; costly steps (e.g. fingerprinting) may be skipped once confidence is sufficient.
