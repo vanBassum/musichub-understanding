@@ -1,0 +1,133 @@
+name: Project understanding
+
+# Validates append-only understanding-log PRs and merges them. Projection is
+# deliberately NOT performed on the PR branch: multiple chats may add logs in
+# parallel, so projections are rebuilt centrally from the latest main history.
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, ready_for_review, synchronize, closed]
+
+jobs:
+  validate-and-merge-log-pr:
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate PR
+        id: validate
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" || true)
+          if [ -z "$changed" ]; then
+            echo "auto=false" >> "$GITHUB_OUTPUT"
+            echo "No changes."
+            exit 0
+          fi
+
+          mechanism=$(printf '%s\n' "$changed" | grep -E '^\.github/(workflows|projectors)/' || true)
+          if [ -n "$mechanism" ]; then
+            echo "auto=false" >> "$GITHUB_OUTPUT"
+            echo "Projection mechanism changed; this PR stays manual:"
+            echo "$mechanism"
+            exit 0
+          fi
+
+          non_logs=$(printf '%s\n' "$changed" | grep -v '^logs/' || true)
+          if [ -n "$non_logs" ]; then
+            echo "auto=false" >> "$GITHUB_OUTPUT"
+            echo "PR contains non-log changes; this PR stays manual:"
+            echo "$non_logs"
+            exit 0
+          fi
+
+          changes=$(git diff --name-status "$BASE_SHA...$HEAD_SHA" -- logs/ || true)
+          invalid=$(printf '%s\n' "$changes" | awk 'NF && $1 != "A" { print }')
+          if [ -n "$invalid" ]; then
+            echo "::error::Existing log files are immutable. Only new files under logs/ may be added."
+            echo "$invalid"
+            exit 1
+          fi
+
+          echo "auto=true" >> "$GITHUB_OUTPUT"
+          echo "Append-only log PR is valid."
+
+      - name: Auto-merge log PR
+        if: steps.validate.outputs.auto == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch --match-head-commit "$HEAD_SHA"
+
+      - name: Rebuild projections from latest main
+        if: steps.validate.outputs.auto == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh workflow run rebuild-projections.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+  cleanup-merged-branch:
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: write
+    steps:
+      - name: Rebuild after merged understanding changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          changed=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')
+          relevant=$(printf '%s\n' "$changed" | grep -E '^(logs/|\.github/projectors/|\.github/workflows/(project-understanding|rebuild-projections)\.yml$)' || true)
+
+          if [ -n "$relevant" ]; then
+            echo "Understanding inputs changed; rebuilding from latest main:"
+            echo "$relevant"
+            gh workflow run rebuild-projections.yml --repo "$GITHUB_REPOSITORY" --ref main
+          else
+            echo "No understanding inputs changed; no rebuild needed."
+          fi
+
+      - name: Delete merged head branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$HEAD_REF" >/dev/null 2>&1; then
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$HEAD_REF"
+            echo "Deleted merged branch $HEAD_REF."
+          else
+            echo "Merged branch $HEAD_REF is already gone."
+          fi
