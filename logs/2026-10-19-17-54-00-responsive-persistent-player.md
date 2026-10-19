@@ -15,4 +15,4 @@ Decision:
 
 Rationale: Provide consistent access to playback while prioritizing browsing space on tablet and mobile.
 
-Boundaries: This establishes the intended UI behavior, not an audio engine or playback backend. The first delivery may use simple placeholder data and controls; real playback wiring is separate work. The three-viewport concept image is illustrative rather than pixel-perfect specification.
+Boundaries: This decision describes the intended final player experience, including integration with real playback state and controls. Implementation phasing, mock data, placeholders and delivery scope belong only in implementation issues. The three-viewport concept image is illustrative rather than pixel-perfect specification.
